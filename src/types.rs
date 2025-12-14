@@ -21,7 +21,7 @@ pub trait ProofTrait {
 }
 
 impl ProofTrait for Proof {
-    type ProofIdType = u32;
+    type ProofIdType = u64;
 }
 
 impl PartialOrd for Proof {
