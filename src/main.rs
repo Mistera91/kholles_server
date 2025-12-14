@@ -23,7 +23,7 @@ fn proof_list_endpoint() -> Result<Template, CustomError> {
     Ok(Template::render(
         "proof-list",
         context! {
-            proofs: files.into_values().map(|e| e.clone()).collect::<Vec<Proof>>(),
+            proofs: files.into_values().map(|e| e.clone()).collect::<Vec<Proof>>().sort(),
         },
     ))
 }
@@ -67,7 +67,7 @@ fn week_list_endpoint() -> Result<Template, CustomError> {
 fn week_newest_endpoint() -> Result<Template, CustomError> {
     let weeks = get_week_list()?;
 
-    let mut week_list = weeks.values().map(|e| e.clone()).collect::<Vec<Week>>();
+    let week_list = weeks.values().map(|e| e.clone()).collect::<Vec<Week>>();
     let newest = week_list
         .iter()
         .max_by_key(|w| w.number)
