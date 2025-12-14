@@ -20,10 +20,16 @@ fn index_endpoint() -> Result<Template, CustomError> {
 fn proof_list_endpoint() -> Result<Template, CustomError> {
     let files = get_proof_list()?;
 
+    let mut proofs = files
+        .into_values()
+        .map(|e| e.clone())
+        .collect::<Vec<Proof>>();
+    proofs.sort_unstable();
+
     Ok(Template::render(
         "proof-list",
         context! {
-            proofs: files.into_values().map(|e| e.clone()).collect::<Vec<Proof>>().sort(),
+            proofs,
         },
     ))
 }

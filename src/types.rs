@@ -1,5 +1,5 @@
 use crate::md_to_html::md_to_html;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDate;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Serialize, Deserialize, Debug, Eq, Hash, PartialEq, Clone)]
@@ -10,7 +10,7 @@ pub struct Proof {
     pub authors: Vec<String>,
     #[serde(deserialize_with = "deserialize_date")]
     #[serde(serialize_with = "serialize_date")]
-    pub date: DateTime<Utc>,
+    pub date: NaiveDate,
     pub tags: Vec<String>,
     #[serde(skip_deserializing)]
     pub content: String,
@@ -24,15 +24,16 @@ impl ProofTrait for Proof {
     type ProofIdType = u64;
 }
 
-impl PartialOrd for Proof {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.date.cmp(&other.date))
+impl Ord for Proof {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Reverse cmp for easier sorting (we want the newest first)
+        (other.date, other.pid).cmp(&(self.date, self.pid))
     }
 }
 
-impl Ord for Proof {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.date.cmp(&other.date)
+impl PartialOrd for Proof {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -63,23 +64,24 @@ impl WeekTrait for Week {
 pub struct Week {
     #[serde(skip_deserializing)]
     pub number: <Self as WeekTrait>::WeekNumberType,
-    pub date: String, // TODO: Change
+    #[serde(deserialize_with = "deserialize_date")]
+    #[serde(serialize_with = "serialize_date")]
+    pub date: NaiveDate,
     pub description: String,
     pub proofs: Vec<<Proof as ProofTrait>::ProofIdType>,
 }
 
-fn deserialize_date<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+fn deserialize_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let dt = NaiveDateTime::parse_from_str(&String::deserialize(deserializer)?, "%m/%d/%Y").map_err(serde::de::Error::custom)?;
-
-    Ok(DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc))
+    NaiveDate::parse_from_str(&String::deserialize(deserializer)?, "%d/%m/%Y")
+        .map_err(serde::de::Error::custom)
 }
 
-fn serialize_date<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_date<S>(date: &NaiveDate, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(&date.naive_utc().format("%m/%d/%Y").to_string())
+    serializer.serialize_str(&date.format("%d/%m/%Y").to_string())
 }
